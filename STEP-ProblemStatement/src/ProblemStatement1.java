@@ -1,55 +1,79 @@
+```java
 import java.util.*;
 
 public class ProblemStatement1 {
 
-    static HashMap<String,Integer> pageViews = new HashMap<>();
-    static HashMap<String,Set<String>> uniqueVisitors = new HashMap<>();
-    static HashMap<String,Integer> sources = new HashMap<>();
+    static int L1_LIMIT = 3;
+    static int L2_LIMIT = 5;
 
-    public static void main(String[] args) {
+    static LinkedHashMap<String,String> L1 = new LinkedHashMap<>(16,0.75f,true){
+        protected boolean removeEldestEntry(Map.Entry<String,String> e){
+            return size()>L1_LIMIT;
+        }
+    };
 
-        processEvent("/article/breaking-news","user_123","google");
-        processEvent("/article/breaking-news","user_456","facebook");
-        processEvent("/sports/championship","user_123","direct");
-        processEvent("/sports/championship","user_789","google");
+    static LinkedHashMap<String,String> L2 = new LinkedHashMap<>(16,0.75f,true){
+        protected boolean removeEldestEntry(Map.Entry<String,String> e){
+            return size()>L2_LIMIT;
+        }
+    };
 
-        getDashboard();
+    static HashMap<String,String> L3 = new HashMap<>();
+    static HashMap<String,Integer> access = new HashMap<>();
+
+    static int l1Hit=0,l2Hit=0,l3Hit=0;
+
+    public static void main(String[] args){
+
+        L3.put("video_123","VideoData123");
+        L3.put("video_456","VideoData456");
+        L3.put("video_999","VideoData999");
+
+        getVideo("video_123");
+        getVideo("video_123");
+        getVideo("video_999");
+
+        getStatistics();
     }
 
-    static void processEvent(String url,String userId,String source){
+    static String getVideo(String id){
 
-        pageViews.put(url,pageViews.getOrDefault(url,0)+1);
-
-        if(!uniqueVisitors.containsKey(url)){
-            uniqueVisitors.put(url,new HashSet<>());
+        if(L1.containsKey(id)){
+            l1Hit++;
+            System.out.println("L1 Cache HIT");
+            return L1.get(id);
         }
-        uniqueVisitors.get(url).add(userId);
 
-        sources.put(source,sources.getOrDefault(source,0)+1);
+        if(L2.containsKey(id)){
+            l2Hit++;
+            System.out.println("L2 Cache HIT");
+            String data=L2.get(id);
+            L1.put(id,data);
+            return data;
+        }
+
+        if(L3.containsKey(id)){
+            l3Hit++;
+            System.out.println("L3 Database HIT");
+            String data=L3.get(id);
+            L2.put(id,data);
+            access.put(id,access.getOrDefault(id,0)+1);
+            return data;
+        }
+
+        return "Not Found";
     }
 
-    static void getDashboard(){
+    static void getStatistics(){
 
-        List<Map.Entry<String,Integer>> list = new ArrayList<>(pageViews.entrySet());
-        list.sort((a,b)->b.getValue()-a.getValue());
+        int total=l1Hit+l2Hit+l3Hit;
 
-        System.out.println("Top Pages:");
+        double r1=(l1Hit*100.0)/total;
+        double r2=(l2Hit*100.0)/total;
+        double r3=(l3Hit*100.0)/total;
 
-        int count=0;
-        for(Map.Entry<String,Integer> e:list){
-            String url=e.getKey();
-            int views=e.getValue();
-            int unique=uniqueVisitors.get(url).size();
-
-            count++;
-            System.out.println(count+". "+url+" - "+views+" views ("+unique+" unique)");
-
-            if(count==10) break;
-        }
-
-        System.out.println("Traffic Sources:");
-        for(String s:sources.keySet()){
-            System.out.println(s+" : "+sources.get(s));
-        }
+        System.out.println("L1 Hit Rate "+r1+"%");
+        System.out.println("L2 Hit Rate "+r2+"%");
+        System.out.println("L3 Hit Rate "+r3+"%");
     }
 }
