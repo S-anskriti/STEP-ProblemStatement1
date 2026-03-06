@@ -1,39 +1,55 @@
 import java.util.*;
-public class ProblemStatement1 {
-        static HashMap<String, Integer> users = new HashMap<>();
-        static HashMap<String, Integer> attempts = new HashMap<>();
 
-        public static void main(String[] args) {
-            users.put("john_doe", 1);
-            users.put("admin", 2);
-            System.out.println(checkAvailability("john_doe"));
-            System.out.println(checkAvailability("jane_smith"));
-            System.out.println(suggestAlternatives("john_doe"));
-            System.out.println(getMostAttempted());
+public class ProblemStatement1 {
+
+    static HashMap<String,Integer> pageViews = new HashMap<>();
+    static HashMap<String,Set<String>> uniqueVisitors = new HashMap<>();
+    static HashMap<String,Integer> sources = new HashMap<>();
+
+    public static void main(String[] args) {
+
+        processEvent("/article/breaking-news","user_123","google");
+        processEvent("/article/breaking-news","user_456","facebook");
+        processEvent("/sports/championship","user_123","direct");
+        processEvent("/sports/championship","user_789","google");
+
+        getDashboard();
+    }
+
+    static void processEvent(String url,String userId,String source){
+
+        pageViews.put(url,pageViews.getOrDefault(url,0)+1);
+
+        if(!uniqueVisitors.containsKey(url)){
+            uniqueVisitors.put(url,new HashSet<>());
         }
-        static boolean checkAvailability(String username) {
-            attempts.put(username, attempts.getOrDefault(username, 0) + 1);
-            if (users.containsKey(username)) return false;
-            return true;
+        uniqueVisitors.get(url).add(userId);
+
+        sources.put(source,sources.getOrDefault(source,0)+1);
+    }
+
+    static void getDashboard(){
+
+        List<Map.Entry<String,Integer>> list = new ArrayList<>(pageViews.entrySet());
+        list.sort((a,b)->b.getValue()-a.getValue());
+
+        System.out.println("Top Pages:");
+
+        int count=0;
+        for(Map.Entry<String,Integer> e:list){
+            String url=e.getKey();
+            int views=e.getValue();
+            int unique=uniqueVisitors.get(url).size();
+
+            count++;
+            System.out.println(count+". "+url+" - "+views+" views ("+unique+" unique)");
+
+            if(count==10) break;
         }
-        static List<String> suggestAlternatives(String username) {
-            List<String> list = new ArrayList<>();
-            for (int i = 1; i <= 3; i++) {
-                String s = username + i;
-                if (!users.containsKey(s)) list.add(s);
-            }
-            list.add(username.replace("_", "."));
-            return list;
-        }
-        static String getMostAttempted() {
-            String name = "";
-            int max = 0;
-            for (String key : attempts.keySet()) {
-                if (attempts.get(key) > max) {
-                    max = attempts.get(key);
-                    name = key;
-                }
-            }
-            return name;
+
+        System.out.println("Traffic Sources:");
+        for(String s:sources.keySet()){
+            System.out.println(s+" : "+sources.get(s));
         }
     }
+}
