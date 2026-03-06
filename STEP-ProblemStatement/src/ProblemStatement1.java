@@ -2,65 +2,54 @@ import java.util.*;
 
 public class ProblemStatement1 {
 
-    static HashMap<String, Set<String>> map = new HashMap<>();
-    static int n = 5;
+    static HashMap<String,Integer> pageViews = new HashMap<>();
+    static HashMap<String,Set<String>> uniqueVisitors = new HashMap<>();
+    static HashMap<String,Integer> sources = new HashMap<>();
 
     public static void main(String[] args) {
 
-        String doc1 = "this is a simple essay written by a student for testing plagiarism detection system";
-        String doc2 = "this is a simple essay written by a student for checking plagiarism in documents";
+        processEvent("/article/breaking-news","user_123","google");
+        processEvent("/article/breaking-news","user_456","facebook");
+        processEvent("/sports/championship","user_123","direct");
+        processEvent("/sports/championship","user_789","google");
 
-        addDocument("essay_089.txt", doc1);
-        addDocument("essay_092.txt", doc2);
-
-        analyzeDocument("essay_123.txt", doc1);
+        getDashboard();
     }
 
-    static void addDocument(String id, String text) {
-        String[] w = text.split(" ");
+    static void processEvent(String url,String userId,String source){
 
-        for (int i = 0; i <= w.length - n; i++) {
-            String g = "";
-            for (int j = 0; j < n; j++) {
-                g += w[i + j] + " ";
-            }
+        pageViews.put(url,pageViews.getOrDefault(url,0)+1);
 
-            if (!map.containsKey(g)) {
-                map.put(g, new HashSet<>());
-            }
-
-            map.get(g).add(id);
+        if(!uniqueVisitors.containsKey(url)){
+            uniqueVisitors.put(url,new HashSet<>());
         }
+        uniqueVisitors.get(url).add(userId);
+
+        sources.put(source,sources.getOrDefault(source,0)+1);
     }
 
-    static void analyzeDocument(String id, String text) {
-        String[] w = text.split(" ");
-        HashMap<String, Integer> count = new HashMap<>();
+    static void getDashboard(){
 
-        int total = 0;
+        List<Map.Entry<String,Integer>> list = new ArrayList<>(pageViews.entrySet());
+        list.sort((a,b)->b.getValue()-a.getValue());
 
-        for (int i = 0; i <= w.length - n; i++) {
-            String g = "";
-            for (int j = 0; j < n; j++) {
-                g += w[i + j] + " ";
-            }
+        System.out.println("Top Pages:");
 
-            total++;
+        int count=0;
+        for(Map.Entry<String,Integer> e:list){
+            String url=e.getKey();
+            int views=e.getValue();
+            int unique=uniqueVisitors.get(url).size();
 
-            if (map.containsKey(g)) {
-                for (String d : map.get(g)) {
-                    count.put(d, count.getOrDefault(d, 0) + 1);
-                }
-            }
+            count++;
+            System.out.println(count+". "+url+" - "+views+" views ("+unique+" unique)");
+
+            if(count==10) break;
         }
 
-        System.out.println("Extracted " + total + " n-grams");
-
-        for (String d : count.keySet()) {
-            int m = count.get(d);
-            double sim = (m * 100.0) / total;
-            System.out.println("Found " + m + " matching n-grams with " + d);
-            System.out.println("Similarity: " + sim + "%");
+        System.out.println("Traffic Sources:");
+        for(String s:sources.keySet()){
+            System.out.println(s+" : "+sources.get(s));
         }
     }
 }
