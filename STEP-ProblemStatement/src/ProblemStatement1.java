@@ -2,54 +2,62 @@ import java.util.*;
 
 public class ProblemStatement1 {
 
-    static HashMap<String,Integer> pageViews = new HashMap<>();
-    static HashMap<String,Set<String>> uniqueVisitors = new HashMap<>();
-    static HashMap<String,Integer> sources = new HashMap<>();
+    static class TokenBucket {
+        int tokens;
+        long lastRefill;
+        int maxTokens;
+
+        TokenBucket(int max) {
+            maxTokens = max;
+            tokens = max;
+            lastRefill = System.currentTimeMillis();
+        }
+    }
+
+    static HashMap<String, TokenBucket> clients = new HashMap<>();
 
     public static void main(String[] args) {
 
-        processEvent("/article/breaking-news","user_123","google");
-        processEvent("/article/breaking-news","user_456","facebook");
-        processEvent("/sports/championship","user_123","direct");
-        processEvent("/sports/championship","user_789","google");
-
-        getDashboard();
+        System.out.println(checkRateLimit("abc123"));
+        System.out.println(checkRateLimit("abc123"));
+        System.out.println(getRateLimitStatus("abc123"));
     }
 
-    static void processEvent(String url,String userId,String source){
+    static String checkRateLimit(String id) {
 
-        pageViews.put(url,pageViews.getOrDefault(url,0)+1);
-
-        if(!uniqueVisitors.containsKey(url)){
-            uniqueVisitors.put(url,new HashSet<>());
+        if (!clients.containsKey(id)) {
+            clients.put(id, new TokenBucket(1000));
         }
-        uniqueVisitors.get(url).add(userId);
 
-        sources.put(source,sources.getOrDefault(source,0)+1);
+        TokenBucket b = clients.get(id);
+
+        long now = System.currentTimeMillis();
+
+        if (now - b.lastRefill >= 3600000) {
+            b.tokens = b.maxTokens;
+            b.lastRefill = now;
+        }
+
+        if (b.tokens > 0) {
+            b.tokens--;
+            return "Allowed (" + b.tokens + " requests remaining)";
+        } else {
+            long retry = (3600000 - (now - b.lastRefill)) / 1000;
+            return "Denied (0 requests remaining, retry after " + retry + "s)";
+        }
     }
 
-    static void getDashboard(){
+    static String getRateLimitStatus(String id) {
 
-        List<Map.Entry<String,Integer>> list = new ArrayList<>(pageViews.entrySet());
-        list.sort((a,b)->b.getValue()-a.getValue());
-
-        System.out.println("Top Pages:");
-
-        int count=0;
-        for(Map.Entry<String,Integer> e:list){
-            String url=e.getKey();
-            int views=e.getValue();
-            int unique=uniqueVisitors.get(url).size();
-
-            count++;
-            System.out.println(count+". "+url+" - "+views+" views ("+unique+" unique)");
-
-            if(count==10) break;
+        if (!clients.containsKey(id)) {
+            return "No data";
         }
 
-        System.out.println("Traffic Sources:");
-        for(String s:sources.keySet()){
-            System.out.println(s+" : "+sources.get(s));
-        }
+        TokenBucket b = clients.get(id);
+
+        int used = b.maxTokens - b.tokens;
+        long reset = (b.lastRefill + 3600000) / 1000;
+
+        return "{used: " + used + ", limit: " + b.maxTokens + ", reset: " + reset + "}";
     }
 }
